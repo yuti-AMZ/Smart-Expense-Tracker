@@ -1,0 +1,401 @@
+#include <iostream>
+#include <iomanip>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <algorithm>
+#include <sstream>
+
+using namespace std;
+
+struct Student {
+    string studentID;
+    string firstName;
+    string lastName;
+    string registrationDate;
+    string phoneNumber;
+    double monthlyBudget;
+};
+
+struct Expense {
+    string studentID;
+    string category;
+    double amount;
+    string date;
+    string description;
+};
+
+vector<Student> students;
+vector<Expense> expenses;
+
+// Function to load students from a file
+void loadStudents() {
+    ifstream file("students.txt");
+    if (!file) return;
+    
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        Student s;
+        getline(ss, s.studentID, ',');
+        getline(ss, s.firstName, ',');
+        getline(ss, s.lastName, ',');
+        getline(ss, s.registrationDate, ',');
+        getline(ss, s.phoneNumber, ',');
+        ss >> s.monthlyBudget;
+        students.push_back(s);
+    }
+    file.close();
+}
+
+// Function to save students to a file
+void saveStudents() {
+    ofstream file("students.txt");
+    for (Student s : students) {
+        file << s.studentID << ","
+             << s.firstName << ","
+             << s.lastName << ","
+             << s.registrationDate << ","
+             << s.phoneNumber << ","
+             << s.monthlyBudget << "\n";
+    }
+    file.close();
+}
+
+// Function to load expenses from a file
+void loadExpenses() {
+    ifstream file("expenses.txt");
+    if (!file) return;
+
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        Expense e;
+        getline(ss, e.studentID, ',');
+        getline(ss, e.category, ',');
+        ss >> e.amount;
+        getline(ss, e.date, ',');
+        getline(ss, e.description, ',');
+        expenses.push_back(e);
+    }
+    file.close();
+}
+
+// Function to save expenses to a file
+void saveExpenses() {
+    ofstream file("expenses.txt");
+    for (Expense e : expenses) {
+        file << e.studentID << ","
+             << e.category << ","
+             << e.amount << ","
+             << e.date << ","
+             << e.description << "\n";
+    }
+    file.close();
+}
+
+// Function to add a student
+void addStudent() {
+    Student s;
+    cout << "Enter Student ID: ";
+    cin >> s.studentID;
+    cout << "Enter First Name: ";
+    cin >> s.firstName;
+    cout << "Enter Last Name: ";
+    cin >> s.lastName;
+    cout << "Enter Registration Date (DD/MM/YYYY): ";
+    cin >> s.registrationDate;
+    cout << "Enter Phone Number: ";
+    cin >> s.phoneNumber;
+    cout << "Enter Monthly Budget: ";
+    while (!(cin >> s.monthlyBudget) || s.monthlyBudget < 0) {
+        cout << "Invalid input. Enter a positive number: ";
+        cin.clear();
+        cin.ignore(10000, '\n');
+    }
+    students.push_back(s);
+    saveStudents();
+    cout << " Student added successfully!\n";
+}
+
+// Function to view all students
+void viewStudents() {
+    if (students.empty()) {
+        cout << " No students found.\n";
+        return;
+    }
+
+    cout << "\nStudent List:\n";
+    cout << left << setw(15) << "Student ID"
+         << setw(20) << "Name"
+         << setw(20) << "Phone Number"
+         << setw(15) << "Budget\n";
+    for (Student s : students) {
+        cout << left << setw(15) << s.studentID
+             << setw(20) << s.firstName + " " + s.lastName
+             << setw(20) << s.phoneNumber
+             << "$" << setw(15) << s.monthlyBudget << "\n";
+    }
+}
+
+// Function to search for a student by ID
+void searchStudent() {
+    string id;
+    cout << "Enter Student ID to search: ";
+    cin >> id;
+
+    Student* targetStudent = nullptr;
+    for (auto &s : students) {
+        if (s.studentID == id) {
+            targetStudent = &s;
+            break;
+        }
+    }
+
+    if (!targetStudent) {
+        cout << " Student not found.\n";
+        return;
+    }
+
+    cout << "Student ID: " << targetStudent->studentID << "\n";
+    cout << "Name: " << targetStudent->firstName << " " << targetStudent->lastName << "\n";
+    cout << "Registration Date: " << targetStudent->registrationDate << "\n";
+    cout << "Phone Number: " << targetStudent->phoneNumber << "\n";
+    cout << "Monthly Budget: $" << targetStudent->monthlyBudget << "\n";
+}
+
+// Function to update student information
+void updateStudent() {
+    string id;
+    cout << "Enter Student ID to update: ";
+    cin >> id;
+
+    Student* targetStudent = nullptr;
+    for (auto &s : students) {
+        if (s.studentID == id) {
+            targetStudent = &s;
+            break;
+        }
+    }
+
+    if (!targetStudent) {
+        cout << " Student not found.\n";
+        return;
+    }
+
+    cout << "Updating information for " << targetStudent->firstName << " " << targetStudent->lastName << "\n";
+    cout << "Enter new Phone Number: ";
+    cin >> targetStudent->phoneNumber;
+    cout << "Enter new Monthly Budget: ";
+    while (!(cin >> targetStudent->monthlyBudget) || targetStudent->monthlyBudget < 0) {
+        cout << "Invalid input. Enter a positive number: ";
+        cin.clear();
+        cin.ignore(10000, '\n');
+    }
+
+    saveStudents();
+    cout << " Student information updated!\n";
+}
+
+// Function to view total expenses for a student
+void viewTotalExpenses() {
+    string id;
+    cout << "Enter Student ID to view total expenses: ";
+    cin >> id;
+
+    double totalSpent = 0;
+    for (Expense e : expenses) {
+        if (e.studentID == id) {
+            totalSpent += e.amount;
+        }
+    }
+
+    cout << "Total Expenses for Student ID " << id << ": $" << fixed << setprecision(2) << totalSpent << "\n";
+}
+
+// Function to add an expense
+void addExpense() {
+    if (students.empty()) {
+        cout << " No students available. Add a student first.\n";
+        return;
+    }
+
+    string id;
+    cout << "Enter Student ID: ";
+    cin >> id;
+
+    // Check if student exists
+    Student* targetStudent = nullptr;
+    for (auto &s : students) {
+        if (s.studentID == id) {
+            targetStudent = &s;
+            break;
+        }
+    }
+
+    if (!targetStudent) {
+        cout << "Student not found.\n";
+        return;
+    }
+
+    Expense e;
+    e.studentID = id;
+    cout << "Enter Category (school_fee, food, transport, entertainment, other): ";
+    cin >> e.category;
+
+    cout << "Enter Amount: ";
+    while (!(cin >> e.amount) || e.amount < 0) {
+        cout << "Invalid amount. Enter a positive number: ";
+        cin.clear();
+        cin.ignore(10000, '\n');
+    }
+
+    cout << "Enter Date (DD/MM/YYYY): ";
+    cin >> e.date;
+
+    cout << "Enter Description: ";
+    cin.ignore();
+    getline(cin, e.description);
+
+    expenses.push_back(e);
+    saveExpenses();
+    cout << "Expense added successfully!\n";
+
+    // Budget warning
+    double totalSpent = 0;
+    for (Expense ex : expenses) {
+        if (ex.studentID == id) {
+            totalSpent += ex.amount;
+        }
+    }
+
+    if (totalSpent > targetStudent->monthlyBudget) {
+        cout << "⚠️ Warning: Student has exceeded the monthly budget of $"
+             << targetStudent->monthlyBudget << "\n";
+    }
+}
+
+// Function to delete an expense
+void deleteExpense() {
+    string id;
+    cout << "Enter Student ID to delete an expense: ";
+    cin >> id;
+
+    int index = -1;
+    for (int i = 0; i < expenses.size(); i++) {
+        if (expenses[i].studentID == id) {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == -1) {
+        cout << " No expenses found for this student.\n";
+        return;
+    }
+
+    expenses.erase(expenses.begin() + index);
+    saveExpenses();
+    cout << " Expense deleted successfully!\n";
+}
+
+// Function to generate report (Total Expenses, Budget Balance)
+void generateReport() {
+    for (Student s : students) {
+        double totalSpent = 0;
+        for (Expense e : expenses) {
+            if (e.studentID == s.studentID) {
+                totalSpent += e.amount;
+            }
+        }
+        double balance = s.monthlyBudget - totalSpent;
+        cout << "\nReport for " << s.firstName << " " << s.lastName << " (ID: " << s.studentID << ")\n";
+        cout << "Total Expenses: $" << fixed << setprecision(2) << totalSpent << "\n";
+        cout << "Remaining Budget: $" << fixed << setprecision(2) << balance << "\n";
+    }
+}
+
+// Function to export expenses to CSV
+void exportExpensesToCSV() {
+    ofstream file("expenses_report.csv");
+
+    file << "Student ID,Category,Amount,Date,Description\n";
+    for (Expense e : expenses) {
+        file << e.studentID << ","
+             << e.category << ","
+             << e.amount << ","
+             << e.date << ","
+             << e.description << "\n";
+    }
+
+    file.close();
+    cout << "Expenses exported to expenses_report.csv\n";
+}
+
+// Function to sort students by first name
+void sortStudentsByName() {
+    sort(students.begin(), students.end(), [](const Student& a, const Student& b) {
+        return a.firstName < b.firstName;  // Sorting in ascending order
+    });
+    cout << " Students sorted by name.\n";
+}
+
+// Function to sort expenses by amount (ascending)
+void sortExpensesByAmount() {
+    sort(expenses.begin(), expenses.end(), [](const Expense& a, const Expense& b) {
+        return a.amount < b.amount;
+    });
+    cout << "Expenses sorted by amount.\n";
+}
+
+// Main menu
+void mainMenu() {
+    int choice;
+    do {
+        cout << "\n-------------------- Main Menu --------------------\n";
+        cout << "[1] Add Student\n";
+        cout << "[2] View Students\n";
+        cout << "[3] Search Student\n";
+        cout << "[4] Update Student\n";
+        cout << "[5] View Total Expenses\n";
+        cout << "[6] Add Expense\n";
+        cout << "[7] Delete Expense\n";
+        cout << "[8] Generate Report\n";
+        cout << "[9] Export Expenses to CSV\n";
+        cout << "[10] Sort Students by Name\n";
+        cout << "[11] Sort Expenses by Amount\n";
+        cout << "[12] Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
+
+        switch (choice) {
+            case 1: addStudent(); break;
+            case 2: viewStudents(); break;
+            case 3: searchStudent(); break;
+            case 4: updateStudent(); break;
+            case 5: viewTotalExpenses(); break;
+            case 6: addExpense(); break;
+            case 7: deleteExpense(); break;
+            case 8: generateReport(); break;
+            case 9: exportExpensesToCSV(); break;
+            case 10: sortStudentsByName(); break;
+            case 11: sortExpensesByAmount(); break;
+            case 12:
+                cout << "Exiting... Bye!\n";
+                break;
+            default:
+                cout << " Invalid choice. Please try again.\n";
+        }
+    } while (choice != 12);
+}
+
+int main() {
+    // Load data from files on program startup
+    loadStudents();
+    loadExpenses();
+
+    // Show the main menu
+    mainMenu();
+
+    return 0;
+}
